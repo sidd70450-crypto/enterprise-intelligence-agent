@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: eia
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: eia
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U eia -d eia"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check .
+      - name: Format
+        run: uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy backend tests
+      - name: Unit tests
+        run: uv run pytest tests/unit -q
+      - name: Integration tests
+        env:
+          EIA_DATABASE_URL: postgresql+asyncpg://eia:ci-only-password@localhost:5432/eia
+          EIA_REDIS_URL: redis://localhost:6379/0
+        run: uv run pytest tests/integration -q -rs
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f infrastructure/Dockerfile -t eia-api:ci .
