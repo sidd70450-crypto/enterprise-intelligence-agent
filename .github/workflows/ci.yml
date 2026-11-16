@@ -171,6 +171,8 @@ jobs:
             | jq -r .id)
           result=$(wait_for "localhost:8000/api/v1/tasks/$task" completed failed)
           echo "$result" | jq -e '.result.retrieve.sources[0].filename == "smoke.md"'
+          echo "$result" | jq -e '.result.assemble_report.status == "answered"'
+          curl -fsS "localhost:8000/api/v1/tasks/$task/report.md" -H "$auth"
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color

@@ -26,6 +26,15 @@ from backend.orchestration.workflow import Services, StageContext, Workflow
 from backend.worker import UnconfiguredChatModel
 from tests.integration.conftest import AddMember, Login, Register, bearer, drain
 
+STAGES = [
+    "plan_queries",
+    "retrieve",
+    "extract_evidence",
+    "write_report",
+    "verify",
+    "assemble_report",
+]
+
 DOCS = {
     "retention.md": "# Retention policy POL-114\n\nCustomer access logs are kept for 400 days.",
     "travel.md": "# Travel policy\n\nEconomy class for flights shorter than six hours.",
@@ -95,11 +104,12 @@ async def test_a_task_runs_end_to_end(
     assert await _runner(app, settings).run_once()
     task = await _detail(client, account, accepted.json()["id"])
     assert task["status"] == "completed", task
-    assert [s["stage"] for s in task["steps"]] == ["plan_queries", "retrieve"]
+    assert [s["stage"] for s in task["steps"]] == STAGES
     assert task["result"]["plan_queries"]["queries"][0] == "How long are logs kept?"
     sources = task["result"]["retrieve"]["sources"]
     assert sources[0]["filename"] == "retention.md"
-    assert task["usage"]["model_calls"] == 1
+    # plan, extract, write and verify each call the model once.
+    assert task["usage"]["model_calls"] == 4
     assert task["usage"]["cost_usd"] is None  # no prices configured: no invented cost
     assert task["tokens_used"] == task["usage"]["input_tokens"] + task["usage"]["output_tokens"]
 
@@ -233,7 +243,7 @@ async def test_a_running_task_stops_at_the_next_stage_when_cancelled(
     await _runner(app, settings, workflows={"pipeline": workflow}).run_once()
     task = await _detail(client, account, task_id)
     assert task["status"] == "cancelled"
-    assert [s["stage"] for s in task["steps"]] == ["plan_queries"]  # retrieve never ran
+    assert [s["stage"] for s in task["steps"]] == ["plan_queries"]  # nothing after it ran
 
 
 async def test_a_missing_model_configuration_fails_the_task_clearly(
@@ -327,10 +337,7 @@ async def test_progress_streams_live_and_ends_when_the_task_does(
 
     assert events[0] == ("snapshot", {"status": "queued", "completed_stages": []})
     stages = [(e["stage"], e["status"]) for kind, e in events if kind == "stage"]
-    assert stages == [
-        ("plan_queries", "started"), ("plan_queries", "completed"),
-        ("retrieve", "started"), ("retrieve", "completed"),
-    ]  # fmt: skip
+    assert stages == [(name, status) for name in STAGES for status in ("started", "completed")]
     assert events[-1][0] == "task" and events[-1][1]["status"] == "completed"
 
 
@@ -341,7 +348,7 @@ async def test_a_late_subscriber_gets_the_final_state_at_once(
     await _runner(app, settings).run_once()
     response = await client.get(f"/api/v1/tasks/{task_id}/events", headers=bearer(account["token"]))
     assert _events(response.text) == [
-        ("snapshot", {"status": "completed", "completed_stages": ["plan_queries", "retrieve"]})
+        ("snapshot", {"status": "completed", "completed_stages": STAGES})
     ]
 
 

@@ -5,8 +5,10 @@ tests control exactly what the "model" says, including failures.
 
 ``KeylessChatModel`` is what ``llm_provider = "fake"`` gives you: it produces
 mechanical answers (for query planning, the question itself plus its key terms)
-so the whole pipeline can be exercised end to end. It does no reasoning; results
-from it say nothing about the quality of a real model.
+so the whole pipeline can be exercised end to end: it quotes the first sentence
+of each passage, turns each quote into a claim, and marks a claim supported only
+if its text appears verbatim in a cited quote. It does no reasoning; results from
+it say nothing about the quality of a real model.
 """
 
 import re
@@ -61,15 +63,62 @@ def key_terms(question: str) -> str:
     return " ".join(w for w in words if w.lower() not in _STOP_WORDS)
 
 
+_SOURCE = re.compile(r'<source id="(S\d+)"[^>]*>\n(.*?)\n</source>', re.S)
+_EVIDENCE_LINE = re.compile(r'^\[(E\d+)\] "(.*)" \(', re.M)
+_CLAIM = re.compile(r"^Claim (\d+): (.*)\nQuotes:\n((?:  - .*\n?)+)", re.M)
+_SENTENCE = re.compile(r".+?[.!?](?=\s|$)", re.S)
+KEYLESS_QUOTES = 5
+
+
+def _first_sentence(text: str) -> str:
+    match = _SENTENCE.search(text.strip())
+    return (match.group(0) if match else text.strip())[:300]
+
+
+def _normalize(text: str) -> str:
+    return " ".join(text.split()).lower()
+
+
 async def _keyless_answer(
     system: str, messages: list[Message], schema: type[BaseModel]
 ) -> BaseModel:
-    question = messages[-1].content
+    """Mechanical but truthful answers for each request type the pipeline makes."""
+    content = messages[-1].content
     fields = schema.model_fields
     if "queries" in fields:
-        terms = key_terms(question)
-        queries = [question] + ([terms] if terms and terms != question else [])
+        terms = key_terms(content)
+        queries = [content] + ([terms] if terms and terms != content else [])
         return schema.model_validate({"queries": queries})
+    if "quotes" in fields:  # evidence: the first sentence of each passage
+        quotes = [
+            {"source_id": label, "quote": _first_sentence(text)}
+            for label, text in _SOURCE.findall(content)[:KEYLESS_QUOTES]
+        ]
+        return schema.model_validate({"quotes": quotes})
+    if "claims" in fields:  # report: each quote becomes a claim citing itself
+        evidence = _EVIDENCE_LINE.findall(content)
+        return schema.model_validate(
+            {
+                "summary": f"Keyless stand-in model: {len(evidence)} quoted passages, not a "
+                "written answer. Configure a real model for actual reports.",
+                "claims": [{"text": quote, "evidence_ids": [eid]} for eid, quote in evidence],
+                "not_found": None,
+            }
+        )
+    if "verdicts" in fields:  # verification: supported only if the claim is a cited quote
+        verdicts = []
+        for number, claim, quote_block in _CLAIM.findall(content):
+            cited = [line.strip()[3:-1] for line in quote_block.strip().splitlines()]
+            found = any(_normalize(claim) in _normalize(q) for q in cited)
+            outcome = "appears verbatim in a cited quote." if found else "is not in its quotes."
+            verdicts.append(
+                {
+                    "claim_number": int(number),
+                    "verdict": "supported" if found else "unsupported",
+                    "rationale": f"Keyless check: the claim text {outcome}",
+                }
+            )
+        return schema.model_validate({"verdicts": verdicts})
     raise ModelError("configuration", f"The keyless model cannot produce {schema.__name__}.")
 
 
