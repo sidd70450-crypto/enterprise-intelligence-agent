@@ -10,11 +10,14 @@ RUN uv sync --frozen --no-dev
 
 # Runtime stage: no build tools, non-root user.
 FROM python:3.12-slim
-RUN useradd --system --uid 10001 --no-create-home eia
+RUN useradd --system --uid 10001 --no-create-home eia \
+ && mkdir -p /var/lib/eia/uploads /var/lib/eia/models \
+ && chown -R eia /var/lib/eia
 COPY --from=build /opt/venv /opt/venv
 COPY --from=build /app/backend /app/backend
 COPY alembic.ini /app/alembic.ini
-ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1 \
+    EIA_STORAGE_DIR=/var/lib/eia/uploads EIA_EMBEDDING_CACHE_DIR=/var/lib/eia/models
 WORKDIR /app
 USER eia
 EXPOSE 8000

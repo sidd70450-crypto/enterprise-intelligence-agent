@@ -1,22 +1,27 @@
+# One image runs three roles: migrate (once), api, and worker.
+x-app: &app
+  build:
+    context: .
+    dockerfile: infrastructure/Dockerfile
+  image: eia-api:local
+  env_file: .env
+  volumes:
+    - uploads:/var/lib/eia/uploads # written by the API, read by the worker
+    - models:/var/lib/eia/models # embedding model cache, downloaded on first start
+
 services:
-  # Applies database migrations once, then exits. The API waits for it.
+  # Applies database migrations, then exits. The API and worker wait for it.
   migrate:
-    build:
-      context: .
-      dockerfile: infrastructure/Dockerfile
-    image: eia-api:local
-    env_file: .env
+    <<: *app
     command: ["alembic", "upgrade", "head"]
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
 
   api:
-    build:
-      context: .
-      dockerfile: infrastructure/Dockerfile
-    image: eia-api:local
-    env_file: .env
+    <<: *app
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -24,6 +29,16 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
+
+  # Parses, chunks and embeds uploaded documents. Scale with --scale worker=N.
+  worker:
+    <<: *app
+    command: ["python", "-m", "backend.worker"]
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   postgres:
     image: pgvector/pgvector:pg17
@@ -53,3 +68,5 @@ services:
 
 volumes:
   pgdata:
+  uploads:
+  models:

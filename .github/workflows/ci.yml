@@ -58,6 +58,22 @@ jobs:
           EIA_REDIS_URL: redis://localhost:6379/0
         run: uv run pytest tests/integration -q -rs
 
+  model-tests:
+    # Downloads the real embedding model from Hugging Face and checks it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Embedding model tests
+        env:
+          EIA_RUN_MODEL_TESTS: "1"
+        run: uv run pytest tests/model -q -rs
+
   compose-smoke:
     # Builds the image and runs the real stack the way a user would, then
     # registers, logs in and reads /me through it.
@@ -89,6 +105,24 @@ jobs:
           token=$(curl -fsS -X POST localhost:8000/api/v1/auth/login -H 'content-type: application/json' \
             -d '{"email":"smoke@example.com","password":"smoke test password"}' | jq -r .access_token)
           curl -fsS localhost:8000/api/v1/me -H "authorization: Bearer $token" | jq -e '.role == "owner"'
+
+          # Upload a document and wait for the worker (real embedding model) to index it.
+          auth="authorization: Bearer $token"
+          collection=$(curl -fsS -X POST localhost:8000/api/v1/collections -H "$auth" \
+            -H 'content-type: application/json' -d '{"name":"Smoke"}' | jq -r .id)
+          printf '# Smoke test\n\nThe worker should parse, chunk and embed this file.\n' > smoke.md
+          document=$(curl -fsS -X POST "localhost:8000/api/v1/collections/$collection/documents" \
+            -H "$auth" -F "file=@smoke.md" | jq -r .id)
+          for _ in $(seq 1 120); do
+            status=$(curl -fsS "localhost:8000/api/v1/documents/$document" -H "$auth" | jq -r .status)
+            case "$status" in
+              ready) curl -fsS "localhost:8000/api/v1/documents/$document" -H "$auth"; exit 0 ;;
+              failed) curl -fsS "localhost:8000/api/v1/documents/$document" -H "$auth"; exit 1 ;;
+            esac
+            sleep 3
+          done
+          echo "document never finished processing" >&2
+          exit 1
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color
