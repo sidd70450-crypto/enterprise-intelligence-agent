@@ -96,7 +96,8 @@ async def app(settings: Settings, migrated: None) -> AsyncIterator[FastAPI]:
         async with application.state.engine.begin() as connection:
             await connection.execute(
                 text(
-                    "TRUNCATE document_chunks, documents, collections, audit_events, "
+                    "TRUNCATE model_calls, workflow_steps, tasks, "
+                    "document_chunks, documents, collections, audit_events, "
                     "refresh_tokens, memberships, users, organizations "
                     "RESTART IDENTITY CASCADE"
                 )

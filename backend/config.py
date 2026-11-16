@@ -57,6 +57,22 @@ class Settings(BaseSettings):
     # Cross-encoder that rescores the top search candidates; "none" skips reranking.
     reranker_backend: Literal["fastembed", "none"] = "fastembed"
     reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    # --- Language models ---
+    # "anthropic" calls the Anthropic API (needs EIA_ANTHROPIC_API_KEY). "fake" is a
+    # keyless stand-in that gives mechanical answers, for demos and tests only.
+    llm_provider: Literal["anthropic", "fake"] = "anthropic"
+    llm_model: str = "claude-sonnet-5-5"
+    anthropic_api_key: SecretStr | None = None
+    llm_timeout_seconds: float = Field(default=60.0, gt=0)
+    llm_max_attempts: int = Field(default=3, ge=1, le=5)
+    # Prices in USD per million tokens. Unset means cost is not computed.
+    llm_input_price_per_mtok: float | None = Field(default=None, ge=0)
+    llm_output_price_per_mtok: float | None = Field(default=None, ge=0)
+    task_token_budget: int = Field(default=50_000, gt=0)
+    task_max_attempts: int = Field(default=3, gt=0)
+    # A running task whose worker has not checked in for this long is resumed elsewhere.
+    task_stale_after_seconds: int = Field(default=600, gt=0)
+
     # Background worker.
     worker_poll_seconds: float = Field(default=1.0, gt=0)
     ingestion_max_attempts: int = Field(default=3, gt=0)
