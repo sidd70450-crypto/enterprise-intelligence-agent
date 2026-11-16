@@ -10,11 +10,19 @@ RUN uv sync --frozen --no-dev
 
 # Runtime stage: no build tools, non-root user.
 FROM python:3.12-slim
-RUN useradd --system --uid 10001 --no-create-home eia
+RUN useradd --system --uid 10001 --no-create-home eia \
+ && mkdir -p /var/lib/eia/uploads /var/lib/eia/models \
+ && chown -R eia /var/lib/eia
 COPY --from=build /opt/venv /opt/venv
 COPY --from=build /app/backend /app/backend
 COPY alembic.ini /app/alembic.ini
-ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
+# The service user has no login home, so point every cache at writable volumes.
+# Without HOME and HF_HOME the Hugging Face client tries ~/.cache and the model
+# download fails with "permission denied".
+ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1 \
+    HOME=/var/lib/eia \
+    HF_HOME=/var/lib/eia/models/huggingface \
+    EIA_STORAGE_DIR=/var/lib/eia/uploads EIA_EMBEDDING_CACHE_DIR=/var/lib/eia/models
 WORKDIR /app
 USER eia
 EXPOSE 8000

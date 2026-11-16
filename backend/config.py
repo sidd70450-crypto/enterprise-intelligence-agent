@@ -6,6 +6,7 @@ missing, the app refuses to start instead of running with something guessable.
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
@@ -38,6 +39,26 @@ class Settings(BaseSettings):
 
     # Account registrations allowed per client IP per hour.
     registrations_per_ip_per_hour: int = Field(default=10, gt=0)
+
+    # --- Document ingestion ---
+    # Where uploaded files are kept. Shared by the API (writes) and worker (reads).
+    storage_dir: Path = Path("data/uploads")
+    max_upload_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    max_pdf_pages: int = Field(default=1000, gt=0)
+    # Limits for the parser subprocess, which handles untrusted files.
+    parse_timeout_seconds: float = Field(default=120.0, gt=0)
+    parse_memory_mb: int = Field(default=1024, ge=128)
+    # "fastembed" runs a real embedding model locally. "hashing" is a
+    # deterministic bag-of-words baseline with no semantic understanding, used
+    # in tests and when the model cannot be downloaded.
+    embedding_backend: Literal["fastembed", "hashing"] = "fastembed"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_cache_dir: Path | None = None
+    # Background worker.
+    worker_poll_seconds: float = Field(default=1.0, gt=0)
+    ingestion_max_attempts: int = Field(default=3, gt=0)
+    # A job whose worker has not reported progress for this long is retried.
+    ingestion_stale_after_seconds: int = Field(default=600, gt=0)
 
 
 @lru_cache

@@ -12,7 +12,7 @@ from alembic import context
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from backend.database import models  # noqa: F401  (registers the tables)
+from backend.database import documents, models  # noqa: F401  (registers the tables)
 from backend.database.base import Base
 
 config = context.config
