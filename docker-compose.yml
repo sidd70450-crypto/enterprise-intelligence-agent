@@ -22,6 +22,7 @@ services:
 
   api:
     <<: *app
+    restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -33,6 +34,7 @@ services:
   # Parses, chunks and embeds uploaded documents. Scale with --scale worker=N.
   worker:
     <<: *app
+    restart: unless-stopped
     command: ["python", "-m", "backend.worker"]
     healthcheck:
       disable: true
