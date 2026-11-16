@@ -13,6 +13,7 @@ FROM python:3.12-slim
 RUN useradd --system --uid 10001 --no-create-home eia
 COPY --from=build /opt/venv /opt/venv
 COPY --from=build /app/backend /app/backend
+COPY alembic.ini /app/alembic.ini
 ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
 WORKDIR /app
 USER eia

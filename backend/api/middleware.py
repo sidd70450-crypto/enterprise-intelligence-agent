@@ -5,6 +5,7 @@ returns it in the ``X-Request-ID`` response header so a user-reported error can
 be matched to its logs.
 """
 
+import json
 import re
 import time
 import uuid
@@ -28,6 +29,29 @@ def _incoming_request_id(scope: Scope) -> str | None:
     return None
 
 
+async def _send_internal_error(send: Send, request_id: str) -> None:
+    body = json.dumps(
+        {
+            "type": "about:blank",
+            "title": "Internal Server Error",
+            "status": 500,
+            "detail": "Something went wrong. Quote the request ID if you report this.",
+            "request_id": request_id,
+        }
+    ).encode()
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 500,
+            "headers": [
+                (b"content-type", b"application/problem+json"),
+                (b"content-length", str(len(body)).encode()),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": body})
+
+
 class RequestIdMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -39,12 +63,14 @@ class RequestIdMiddleware:
 
         request_id = _incoming_request_id(scope) or uuid.uuid4().hex
         status_code = 500
+        response_started = False
         started = time.perf_counter()
 
         async def send_with_header(message: Message) -> None:
-            nonlocal status_code
+            nonlocal status_code, response_started
             if message["type"] == "http.response.start":
                 status_code = message["status"]
+                response_started = True
                 message["headers"] = [*message.get("headers", []), (HEADER, request_id.encode())]
             await send(message)
 
@@ -52,6 +78,15 @@ class RequestIdMiddleware:
         structlog.contextvars.bind_contextvars(request_id=request_id)
         try:
             await self.app(scope, receive, send_with_header)
+        except Exception:
+            # An unhandled error. Log the traceback here, where the request ID is
+            # still bound, and answer with a generic 500: the client gets the ID
+            # to quote, never the exception text.
+            log.exception("unhandled_error", method=scope["method"], path=scope["path"])
+            if response_started:
+                raise
+            status_code = 500
+            await _send_internal_error(send_with_header, request_id)
         finally:
             log.info(
                 "request",
