@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     embedding_backend: Literal["fastembed", "hashing"] = "fastembed"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_cache_dir: Path | None = None
+    # Cross-encoder that rescores the top search candidates; "none" skips reranking.
+    reranker_backend: Literal["fastembed", "none"] = "fastembed"
+    reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
     # Background worker.
     worker_poll_seconds: float = Field(default=1.0, gt=0)
     ingestion_max_attempts: int = Field(default=3, gt=0)

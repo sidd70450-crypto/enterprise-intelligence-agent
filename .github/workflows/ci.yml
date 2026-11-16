@@ -42,7 +42,7 @@ jobs:
       - name: Format
         run: uv run ruff format --check .
       - name: Type check
-        run: uv run mypy backend tests
+        run: uv run mypy backend tests evaluation
       - name: Unit tests
         run: uv run pytest tests/unit -q
       - name: Migrations match the models
@@ -73,6 +73,41 @@ jobs:
         env:
           EIA_RUN_MODEL_TESTS: "1"
         run: uv run pytest tests/model -q -rs
+
+  retrieval-benchmark:
+    # Measures retrieval quality with the real models. The report is shown in the
+    # job summary and kept as an artifact; nothing in it is hand-written.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: eia
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: eia_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U eia -d eia_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      EIA_DATABASE_URL: postgresql+asyncpg://eia:ci-only-password@localhost:5432/eia_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run alembic upgrade head
+      - name: Run the benchmark
+        run: |
+          uv run python -m evaluation.benchmarks.retrieval --out benchmark-report
+          cat benchmark-report/*.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-benchmark
+          path: benchmark-report/
 
   compose-smoke:
     # Builds the image and runs the real stack the way a user would, then

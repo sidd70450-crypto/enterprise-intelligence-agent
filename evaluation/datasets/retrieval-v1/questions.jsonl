@@ -1,0 +1,30 @@
+{"id": "q01", "type": "paraphrase", "question": "How much money did the company bring in last year?", "evidence": ["total revenue of 412 million euros"]}
+{"id": "q02", "type": "paraphrase", "question": "Which part of the business grew its client base the quickest?", "evidence": ["The Iberia region grew fastest"]}
+{"id": "q03", "type": "paraphrase", "question": "Why are fewer staff quitting?", "evidence": ["four-day work week pilot"]}
+{"id": "q04", "type": "paraphrase", "question": "If someone wants us to forget everything about them, how long do we have?", "evidence": ["complete erasure within 30 days"]}
+{"id": "q05", "type": "paraphrase", "question": "What made dispatchers go back to paper last autumn?", "evidence": ["exclusive lock on the table"]}
+{"id": "q06", "type": "paraphrase", "question": "Why must we avoid charging a card a second time after it did not respond?", "evidence": ["a second approval would charge the customer twice"]}
+{"id": "q07", "type": "paraphrase", "question": "Can staff log in to live systems with a code from an SMS?", "evidence": ["one-time codes sent by text message are not accepted"]}
+{"id": "q08", "type": "paraphrase", "question": "How fast must we reply when a client cannot ship anything at all?", "evidence": ["first response must come within 15 minutes"]}
+{"id": "q09", "type": "paraphrase", "question": "Can I fly in the front of the plane on a long trip?", "evidence": ["Business class needs written approval from a vice president"]}
+{"id": "q10", "type": "paraphrase", "question": "How long may a lorry driver be behind the wheel in one day?", "evidence": ["nine hours of driving per day"]}
+{"id": "q11", "type": "identifier", "question": "POL-114 access logs", "evidence": ["Customer access logs are kept for 400 days"]}
+{"id": "q12", "type": "identifier", "question": "What happened in INC-2291?", "evidence": ["unavailable for 3 hours and 12 minutes"]}
+{"id": "q13", "type": "identifier", "question": "E4021", "evidence": ["The card network did not answer within eight seconds"]}
+{"id": "q14", "type": "identifier", "question": "What should I do about E5102?", "evidence": ["This is always a client bug"]}
+{"id": "q15", "type": "identifier", "question": "SEC-07 key rotation", "evidence": ["rotated every 90 days"]}
+{"id": "q16", "type": "identifier", "question": "Which flag controls route_optimizer_v3 rollout?", "evidence": ["enabled first for 5 percent of depots"]}
+{"id": "q17", "type": "identifier", "question": "AES-256", "evidence": ["encrypted at rest with AES-256"]}
+{"id": "q18", "type": "identifier", "question": "TLS 1.1", "evidence": ["TLS 1.0 and 1.1 are blocked at the load balancer"]}
+{"id": "q19", "type": "identifier", "question": "Gdansk construction", "evidence": ["construction to begin in the second quarter of 2026"]}
+{"id": "q20", "type": "identifier", "question": "99.9 percent availability credit", "evidence": ["service credit of 10 percent"]}
+{"id": "q21", "type": "factual", "question": "How long are shipment tracking events kept?", "evidence": ["Shipment tracking events are kept for 25 months"]}
+{"id": "q22", "type": "factual", "question": "What statement timeout do planning queries get?", "evidence": ["statement timeout of five seconds"]}
+{"id": "q23", "type": "factual", "question": "When do card payments settle into the operating account?", "evidence": ["two business days after capture"]}
+{"id": "q24", "type": "factual", "question": "How quickly must critical vulnerabilities be patched?", "evidence": ["Critical vulnerabilities must be patched within 7 days"]}
+{"id": "q25", "type": "factual", "question": "What is the hotel nightly limit in London?", "evidence": ["260 euros in London, Paris and Zurich"]}
+{"id": "q26", "type": "factual", "question": "What is the daily meal allowance?", "evidence": ["daily meal allowance is 55 euros"]}
+{"id": "q27", "type": "factual", "question": "How many reviewers do changes to payments code need?", "evidence": ["need two reviewers"]}
+{"id": "q28", "type": "factual", "question": "What is the on-call allowance per week?", "evidence": ["300 euros per week"]}
+{"id": "q29", "type": "factual", "question": "When is the next board meeting?", "evidence": ["11 December 2025 in Rotterdam"]}
+{"id": "q30", "type": "factual", "question": "What carbon reduction target did the board ask for?", "evidence": ["by 40 percent by 2030"]}

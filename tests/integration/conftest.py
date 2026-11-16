@@ -84,6 +84,7 @@ def settings(database_url: str, tmp_path: Path) -> Settings:
         storage_dir=tmp_path / "uploads",
         max_upload_bytes=2 * 1024 * 1024,
         embedding_backend="hashing",
+        reranker_backend="none",
         parse_timeout_seconds=60,
     )
 

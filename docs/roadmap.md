@@ -7,8 +7,8 @@ Status is updated in the same commit that completes a milestone.
 | --- | --- | --- | --- |
 | M0 | Skeleton: layout, config, logging, health checks, Compose, CI | `/readyz` reports ready against real PostgreSQL and Redis; CI green | Done (2026-11-16) |
 | M1 | Database and auth | API tests cover login, expiry, refresh rotation, forbidden route | Done (2026-11-16) |
-| M2 | Document ingestion | A 50-page PDF becomes searchable; a corrupt file fails with a reason | In review |
-| M3 | Hybrid retrieval and first benchmark | Recall@10 reported for vector, keyword and hybrid on the same questions | Not started |
+| M2 | Document ingestion | A 50-page PDF becomes searchable; a corrupt file fails with a reason | Done (2026-11-16) |
+| M3 | Hybrid retrieval and first benchmark | Recall@10 reported for vector, keyword and hybrid on the same questions | In review |
 | M4 | Workflow orchestration | A worker killed mid-task resumes without repeating finished stages | Not started |
 | M5 | Evidence, report, verification | Abstains on unanswerable questions; every citation resolves to a real quote | Not started |
 | M6 | Frontend | A full task can be run and inspected in the browser | Not started |
