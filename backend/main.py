@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from redis.asyncio import Redis
 
-from backend.api import admin, auth, documents, me, search
+from backend.api import admin, auth, documents, me, search, tasks
 from backend.api.errors import install_error_handlers
 from backend.api.health import router as health_router
 from backend.api.middleware import RequestIdMiddleware
@@ -62,6 +62,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.include_router(admin.router)
     api.include_router(documents.router)
     api.include_router(search.router)
+    api.include_router(tasks.router)
     app.include_router(api)
     return app
 
