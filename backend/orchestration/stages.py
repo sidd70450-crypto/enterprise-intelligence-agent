@@ -1,7 +1,7 @@
-"""The stages of the research pipeline that exist so far.
+"""The research pipeline and its first two stages.
 
-M4 has two: plan search queries, then retrieve passages for them. Evidence
-extraction, report writing and verification arrive in M5.
+plan_queries and retrieve live here; the evidence, report and verification
+stages are in research.py.
 """
 
 import uuid
@@ -10,6 +10,12 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 from backend.llm.types import Message
+from backend.orchestration.research import (
+    AssembleReport,
+    ExtractEvidence,
+    VerifyClaims,
+    WriteReport,
+)
 from backend.orchestration.workflow import StageContext, Workflow
 from backend.retrieval.search import Retriever, SearchHit, reciprocal_rank_fusion
 
@@ -92,5 +98,19 @@ class RetrieveSources:
         return {"sources": sources}
 
 
-RESEARCH_PIPELINE = Workflow(name="pipeline", stages=[PlanQueries(), RetrieveSources()])
+def _research_pipeline() -> Workflow:
+    return Workflow(
+        name="pipeline",
+        stages=[
+            PlanQueries(),
+            RetrieveSources(),
+            ExtractEvidence(),
+            WriteReport(),
+            VerifyClaims(),
+            AssembleReport(),
+        ],
+    )
+
+
+RESEARCH_PIPELINE = _research_pipeline()
 WORKFLOWS = {RESEARCH_PIPELINE.name: RESEARCH_PIPELINE}

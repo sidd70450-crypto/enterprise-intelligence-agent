@@ -4,10 +4,11 @@ A research agent that answers questions over a document collection and returns a
 report in which every claim cites a verbatim quote, and every claim has been checked
 against its evidence.
 
-> **Status: milestone M4 (workflow orchestration).** Accounts, document ingestion,
-> hybrid search and research tasks exist. A task plans search queries and retrieves
-> sources, with checkpoints and resume. Evidence extraction, report writing and
-> verification (M5) do not exist yet. The [roadmap](docs/roadmap.md) says what each milestone adds.
+> **Status: milestone M5 (evidence and verification).** The core research workflow
+> exists end to end: question, query planning, hybrid retrieval, verified quotes,
+> a cited report, claim verification and Markdown export. There is no web
+> frontend yet (M6), and the real model adapter has not been run against the live
+> API (no key was available). The [roadmap](docs/roadmap.md) says what each milestone adds.
 > This README describes only what is built; nothing below is aspirational.
 
 ## What works today
@@ -28,6 +29,8 @@ against its evidence.
 | Vector (HNSW) and full-text (GIN) indexes on every chunk | `document_chunks` table |
 | Hybrid search: vector + keyword, reciprocal rank fusion, cross-encoder reranking | `POST /api/v1/search` |
 | Research tasks: query planning and multi-query retrieval, checkpoint per stage, resume after a crash, cancel, idempotent submit, token budget, live progress (server-sent events) | `POST /api/v1/tasks`, `GET /api/v1/tasks/{id}/events` |
+| Evidence and verification: quotes checked word for word against their source, claims must cite verified quotes, a separate verification call per report, unsupported claims removed and listed, abstains when there is no evidence | `backend/orchestration/research.py` |
+| Markdown export of a report, with image and HTML syntax from documents neutralised | `GET /api/v1/tasks/{id}/report.md` |
 | Model layer: timeouts, bounded retries by error category, per-call token and cost records; Anthropic adapter (not yet run against the real API) and a keyless stand-in | `backend/llm/` |
 | Retrieval benchmark (recall@k, MRR, latency per mode), run in CI with the real models | `python -m evaluation.benchmarks.retrieval`, [reports](evaluation/reports/) |
 | Database migrations (Alembic), checked against the models in CI | `uv run alembic upgrade head` |
@@ -77,7 +80,7 @@ Lint and types: `uv run ruff check . && uv run ruff format --check . && uv run m
 ## Design
 
 - [Phase 1 design document](https://claude.ai/artifact/FfhXNQN6GJPNBWaMKRu3LP): specification, architecture, schema, API, threat model, evaluation plan.
-- [Decision records](docs/adr/), including [authentication](docs/adr/0003-authentication.md) [document ingestion](docs/adr/0004-document-ingestion.md), [hybrid retrieval](docs/adr/0005-hybrid-retrieval.md) and [orchestration](docs/adr/0006-workflow-orchestration.md)
+- [Decision records](docs/adr/), including [authentication](docs/adr/0003-authentication.md) [document ingestion](docs/adr/0004-document-ingestion.md), [hybrid retrieval](docs/adr/0005-hybrid-retrieval.md) [orchestration](docs/adr/0006-workflow-orchestration.md) and [evidence and verification](docs/adr/0007-evidence-and-verification.md)
 - [Roadmap](docs/roadmap.md)
 
 ## Repository layout

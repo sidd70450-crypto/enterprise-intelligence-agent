@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
@@ -31,6 +31,7 @@ from backend.database.session import get_session
 from backend.database.tasks import TERMINAL, ModelCall, Task, TaskStatus, WorkflowStep
 from backend.orchestration.events import channel
 from backend.orchestration.stages import WORKFLOWS
+from backend.reporting.markdown import render_report
 from backend.security.audit import record_event
 from backend.security.dependencies import Principal, get_settings_from_app, require_permission
 
@@ -252,6 +253,23 @@ async def cancel_task(task_id: uuid.UUID, principal: Writer, session: Session) -
     await session.commit()
     await session.refresh(task)
     return _summary(task)
+
+
+@router.get(
+    "/tasks/{task_id}/report.md",
+    response_class=PlainTextResponse,
+    responses={409: {"description": "The task has not completed"}},
+)
+async def export_report(task_id: uuid.UUID, principal: Reader, session: Session) -> Response:
+    task = await _task(session, principal, task_id)
+    report = (task.result or {}).get("assemble_report")
+    if task.status != TaskStatus.COMPLETED or report is None:
+        raise HTTPException(409, "The task has no finished report.")
+    return PlainTextResponse(
+        render_report(task.question, report),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="report-{task.id}.md"'},
+    )
 
 
 def _sse(event: str, data: dict[str, Any]) -> str:
