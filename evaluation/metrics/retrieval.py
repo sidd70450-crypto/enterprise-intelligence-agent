@@ -10,6 +10,7 @@ keeps the labels valid when the chunking changes.
 - reciprocal rank: 1 / rank of the first relevant chunk, 0 if none in the list.
 """
 
+import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -53,5 +54,6 @@ def percentile(values: Sequence[float], q: float) -> float:
     if not values:
         return 0.0
     ordered = sorted(values)
-    rank = max(1, round(q / 100 * len(ordered)))
+    # Nearest rank is the ceiling. round() would be wrong: it rounds 2.5 to 2.
+    rank = max(1, math.ceil(q / 100 * len(ordered)))
     return ordered[min(rank, len(ordered)) - 1]
