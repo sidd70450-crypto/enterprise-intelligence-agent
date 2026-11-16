@@ -10,7 +10,7 @@ Status is updated in the same commit that completes a milestone.
 | M2 | Document ingestion | A 50-page PDF becomes searchable; a corrupt file fails with a reason | Done (2026-11-16) |
 | M3 | Hybrid retrieval and first benchmark | Recall@10 reported for vector, keyword and hybrid on the same questions | Done (2026-11-16) |
 | M4 | Workflow orchestration | A worker killed mid-task resumes without repeating finished stages | Done (2026-11-17) |
-| M5 | Evidence, report, verification | Abstains on unanswerable questions; every citation resolves to a real quote | In review |
+| M5 | Evidence, report, verification | Abstains on unanswerable questions; every citation resolves to a real quote | Done (2026-11-17) |
 | M6 | Frontend | A full task can be run and inspected in the browser | Not started |
 | M7 | Deploy v0.1 | A public demo runs the benchmark corpus | Not started |
 | M8 | Tenancy and hardening (v0.2) | Cross-tenant tests pass on every endpoint; red-team results published | Not started |

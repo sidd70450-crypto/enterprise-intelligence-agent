@@ -1,6 +1,6 @@
 # Handoff: where the project stands
 
-Last updated 2026-11-16 at the end of milestone M3. Read this, then
+Last updated 2026-11-17 at the end of milestone M5. Read this, then
 [roadmap.md](roadmap.md), before starting work.
 
 ## Done
@@ -11,8 +11,13 @@ Last updated 2026-11-16 at the end of milestone M3. Read this, then
 | M1 Database and auth | #1 | Users, organizations, roles, Argon2id, JWT + rotating refresh tokens, rate limits, audit log |
 | M2 Document ingestion | #2 | Upload, sandboxed parsing, chunking with offsets, FastEmbed embeddings, worker |
 | M3 Hybrid retrieval | #3 | `POST /api/v1/search` (vector, keyword, RRF, rerank), retrieval benchmark in CI |
+| M4 Orchestration | #4 | Tasks with a checkpoint per stage, resume, cancel, idempotency, token budget, SSE progress; model layer with retries and accounting |
+| M5 Evidence and verification | #5 | Code-verified quotes, cited claims, separate claim verification, abstention, Markdown export |
 
-Decision records: `docs/adr/0001` to `0005`. Benchmark reports: `evaluation/reports/`.
+The core workflow (question to verified, cited report) works end to end. With
+`EIA_LLM_PROVIDER=fake` it runs without an API key, giving mechanical answers.
+
+Decision records: `docs/adr/0001` to `0007`. Benchmark reports: `evaluation/reports/`.
 
 ## How work is done here
 
@@ -45,32 +50,30 @@ Decision records: `docs/adr/0001` to `0005`. Benchmark reports: `evaluation/repo
   artifacts cannot be downloaded; read job logs with
   `gh api repos/{owner}/{repo}/actions/jobs/{job_id}/logs`.
 
-## Next: M4 workflow orchestration
+## Next milestones
 
-Exit test: a worker killed mid-task resumes without repeating finished stages.
-
-1. `backend/llm/`: a `ChatModel` interface (structured output as Pydantic models,
-   token and cost accounting, timeout, bounded retries, typed error categories), a
-   deterministic `FakeChatModel` for tests, and adapters for real providers. The
-   real adapters can be written but **not verified without API keys**; mark them
-   unverified in the PR.
-2. Migration `0003`: `conversations`, `tasks`, `workflow_steps` (unique on task,
-   stage and attempt), `model_calls`, following design doc section 4.
-3. `backend/orchestration/`: the fixed seven-stage state machine from design doc
-   section 3, with a checkpoint per stage and the same claim, lock-token and
-   heartbeat pattern as `backend/ingestion/pipeline.py`. Tasks run in the existing
-   worker process.
-4. API: `POST /tasks` (202, `Idempotency-Key`), `GET /tasks`, `GET /tasks/{id}`,
-   `POST /tasks/{id}/cancel`, `GET /tasks/{id}/events` (server-sent events).
-
-Then M5 (evidence, report, verification), M6 (React frontend), M8 (row-level
-security and red-team suite), M10 (OpenTelemetry, Prometheus, circuit breakers),
-M12 (documentation), as in the roadmap.
+- **M6 frontend** (React, TypeScript, Vite): login, collections and upload,
+  task submission, a live stage timeline from `GET /tasks/{id}/events` (read with
+  `fetch`, since the stream needs the `Authorization` header), the report with a
+  citation viewer, and task history. Make token refresh single-flight: two
+  concurrent refreshes log the user out by design (ADR 0003). Generate the API
+  client from `/openapi.json`.
+- **M8 tenancy and hardening**: PostgreSQL row-level security on every
+  `org_id` table, an app role that cannot bypass it, member invitations, and a
+  red-team suite (prompt injection documents, cross-tenant access, upload abuse)
+  with results written up, including the cases that succeed.
+- **M10 operations**: OpenTelemetry traces, Prometheus metrics, a second model
+  provider with fallback, circuit breakers.
+- **M12 documentation**: architecture and database diagrams, security doc,
+  known limitations.
+- **M7, M9 and M11** need the owner (below).
 
 ## Blocked on the owner
 
-- **LLM API keys** for the real provider adapters (M4, M5) and for real benchmark
-  runs of the research workflow (M11).
+- **An Anthropic API key** (or another provider's). The Anthropic adapter has
+  only been tested against a mocked transport. With a key: set
+  `EIA_ANTHROPIC_API_KEY`, run one task, and check the report. Real benchmark runs
+  of the workflow (M11) also need it, and cost money.
 - **A deployment target** (server or cloud account and credentials) for M7.
 - **A larger, openly licensed evaluation corpus.** retrieval-v1 is too easy;
   vector search alone nearly reaches the ceiling.
@@ -84,3 +87,8 @@ M12 (documentation), as in the roadmap.
 - Bake the embedding models into the image at build time so production does not
   depend on Hugging Face at start-up.
 - Keyword ranking is `ts_rank_cd`, not BM25; a BM25 extension is a candidate.
+- Verification is one model call for all claims; per-claim calls are a variant to
+  benchmark. Verifier accuracy must be measured against hand labels before any
+  claim about it is made.
+- PDF export is not implemented (Markdown is).
+- A second model provider for fallback is not implemented.
