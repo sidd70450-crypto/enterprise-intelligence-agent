@@ -27,7 +27,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.database import models as _identity_models  # noqa: F401
 from backend.database.base import Base, created_at, uuid_pk
+
+# The import above registers organizations and users, which these tables
+# reference. Without it, a process that imports only this module (the worker)
+# cannot resolve the foreign keys and every write fails.
 
 # Fixed by the embedding model (BAAI/bge-small-en-v1.5). Changing models with a
 # different size needs a migration and re-embedding every chunk.

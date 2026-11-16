@@ -19,6 +19,10 @@ from backend.logging_setup import configure_logging
 
 log = structlog.get_logger("eia.worker")
 
+# Pause after an unexpected error before claiming again, so a persistent fault
+# (database down) does not become a tight loop.
+ERROR_BACKOFF_SECONDS = 5.0
+
 
 async def run(settings: Settings) -> None:
     configure_logging(settings.log_level)
@@ -37,10 +41,16 @@ async def run(settings: Settings) -> None:
     log.info("worker_started", embedder=embedder.name)
     try:
         while not stop.is_set():
-            if await pipeline.run_once():
-                continue
             try:
-                await asyncio.wait_for(stop.wait(), timeout=settings.worker_poll_seconds)
+                if await pipeline.run_once():
+                    continue
+                pause = settings.worker_poll_seconds
+            except Exception:
+                # One bad job or a database blip must not kill the worker.
+                log.exception("worker_iteration_failed")
+                pause = ERROR_BACKOFF_SECONDS
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=pause)
             except TimeoutError:
                 pass
     finally:
