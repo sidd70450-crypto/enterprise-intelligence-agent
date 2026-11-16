@@ -30,5 +30,5 @@ jobs:
           python-version: "3.12"
       - name: Audit locked dependencies for known vulnerabilities
         run: |
-          uv export --frozen --no-hashes --format requirements-txt > requirements.txt
+          uv export --frozen --no-hashes --no-emit-project --format requirements-txt > requirements.txt
           uvx pip-audit --strict -r requirements.txt
