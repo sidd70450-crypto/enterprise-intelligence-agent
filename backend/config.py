@@ -1,14 +1,14 @@
 """Typed application settings, read from environment variables.
 
 Every setting is an environment variable prefixed with ``EIA_``. There are no
-default credentials: if the database or Redis URL is missing, the app refuses to
-start instead of silently connecting to something unexpected.
+default credentials or secrets: if the database URL, Redis URL or JWT secret is
+missing, the app refuses to start instead of running with something guessable.
 """
 
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,19 @@ class Settings(BaseSettings):
 
     # Upper bound, in seconds, for each dependency check made by /readyz.
     readiness_timeout_seconds: float = Field(default=2.0, gt=0)
+
+    # HMAC key for access tokens. Generate one with:
+    #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+    jwt_secret: SecretStr = Field(min_length=32)
+    access_token_ttl_seconds: int = Field(default=900, gt=0, le=3600)
+    refresh_token_ttl_seconds: int = Field(default=14 * 24 * 3600, gt=0)
+
+    # Failed logins allowed per email inside the window; per IP it is five times this.
+    login_max_failures: int = Field(default=10, gt=0)
+    login_window_seconds: int = Field(default=900, gt=0)
+
+    # Account registrations allowed per client IP per hour.
+    registrations_per_ip_per_hour: int = Field(default=10, gt=0)
 
 
 @lru_cache

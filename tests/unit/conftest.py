@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import AsyncIterator
 
 import pytest
@@ -6,6 +7,8 @@ from httpx import ASGITransport, AsyncClient
 
 from backend.config import Settings
 from backend.main import create_app
+
+TEST_SECRET = secrets.token_urlsafe(48)
 
 
 @pytest.fixture
@@ -17,6 +20,7 @@ def settings() -> Settings:
         database_url="postgresql+asyncpg://unused:unused@localhost:1/unused",
         redis_url="redis://localhost:1/0",
         readiness_timeout_seconds=0.05,
+        jwt_secret=TEST_SECRET,
     )
 
 
